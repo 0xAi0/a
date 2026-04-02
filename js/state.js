@@ -4,13 +4,23 @@ import { DEFAULT_SYMBOLS } from './config.js';
 
 class AppState {
     constructor() {
-        this.activeExchange = localStorage.getItem('activeExchange') || 'hyperliquid';
+        this.activeExchange = localStorage.getItem('activeExchange') || 'binance';
         this.symbolSets = JSON.parse(localStorage.getItem('symbolSets')) || { ...DEFAULT_SYMBOLS };
         this.isGridView = JSON.parse(localStorage.getItem('isGridView')) ?? true;
         this.settings = JSON.parse(localStorage.getItem('settings')) || { refreshInterval: 10 };
         this.globalMarketData = {};
         this.refreshIntervalId = null;
         this.tokenInfoCache = {};
+        this.pinnedSymbol = localStorage.getItem('pinnedSymbol') || null;
+    }
+
+    setPinnedSymbol(symbol) {
+        this.pinnedSymbol = symbol;
+        if (symbol) {
+            localStorage.setItem('pinnedSymbol', symbol);
+        } else {
+            localStorage.removeItem('pinnedSymbol');
+        }
     }
 
     getSymbols() {

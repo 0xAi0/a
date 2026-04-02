@@ -2,7 +2,7 @@
 
 import { state } from './state.js';
 import { EXCHANGE_META } from './config.js';
-import { cleanSymbol } from './utils/format.js';
+import { cleanSymbol, formatPrice } from './utils/format.js';
 import { fetchHyperliquid } from './exchanges/hyperliquid.js';
 import { fetchLighter } from './exchanges/lighter.js';
 import { fetchAsterDex } from './exchanges/asterdex.js';
@@ -88,7 +88,8 @@ async function updateDashboard() {
 
     const callbacks = {
         onRemove: (sym) => removeCoin(sym),
-        onClick: (coinData) => showDetailModal(coinData)
+        onClick: (coinData) => showDetailModal(coinData),
+        onPin: (sym) => pinCoin(sym)
     };
 
     state.getSymbols().forEach(sym => {
@@ -110,11 +111,40 @@ async function updateDashboard() {
     });
 
     updateTimestamp();
+    updateTabTitle(data);
 }
 
 function updateTimestamp() {
     document.getElementById('lastRefreshTime').textContent =
         new Date().toLocaleTimeString('en-US', { hour12: false });
+}
+
+// ── Pin to Tab ──
+function pinCoin(symbol) {
+    if (state.pinnedSymbol === symbol) {
+        state.setPinnedSymbol(null);
+        document.title = 'Market Pulse';
+    } else {
+        state.setPinnedSymbol(symbol);
+    }
+    // Re-render to update pin button states
+    updateDashboard();
+}
+
+function updateTabTitle(data) {
+    const pinned = state.pinnedSymbol;
+    if (!pinned) {
+        document.title = 'Market Pulse';
+        return;
+    }
+    const coinData = data[pinned];
+    if (coinData) {
+        const sym = cleanSymbol(coinData.symbol);
+        const price = formatPrice(coinData.lastPrice);
+        const pct = coinData.priceChangePercent;
+        const arrow = pct >= 0 ? '▲' : '▼';
+        document.title = `$${price} ${arrow}${Math.abs(pct).toFixed(2)}% ${sym}`;
+    }
 }
 
 // ── Coin Management ──

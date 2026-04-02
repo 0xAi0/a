@@ -414,14 +414,38 @@ main { position: relative; z-index: 1; padding: 32px 0 60px; }
 
 .card-vol { font-size: 0.72rem; color: var(--text-muted); }
 
+/* Card action buttons (pin + remove) */
+.card-actions {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; gap: 4px; align-items: center;
+}
+
 .remove-btn {
-    position: absolute; top: 14px; right: 14px;
+    padding: 5px; border-radius: 7px; border: none; cursor: pointer;
+    background: transparent; color: var(--text-muted);
+    transition: all 0.2s;
+}
+.price-card:hover .remove-btn { opacity: 1 !important; }
+.remove-btn:hover { background: rgba(248,113,113,0.15); color: var(--red); }
+
+.pin-btn {
     padding: 5px; border-radius: 7px; border: none; cursor: pointer;
     background: transparent; color: var(--text-muted);
     opacity: 0; transition: all 0.2s;
 }
-.price-card:hover .remove-btn { opacity: 1; }
-.remove-btn:hover { background: rgba(248,113,113,0.15); color: var(--red); }
+.price-card:hover .pin-btn { opacity: 1; }
+.pin-btn:hover { background: rgba(34,211,238,0.15); color: var(--accent); }
+.pin-btn.active {
+    opacity: 1;
+    color: var(--accent);
+    background: rgba(34,211,238,0.12);
+}
+
+/* Pinned card glow */
+.price-card.pinned {
+    border-color: rgba(34,211,238,0.25);
+    box-shadow: 0 0 20px rgba(34,211,238,0.08), inset 0 0 20px rgba(34,211,238,0.03);
+}
 
 /* Error card */
 .error-card {

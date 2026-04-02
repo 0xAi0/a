@@ -5,18 +5,39 @@ import { state } from '../state.js';
 
 /**
  * Fetch all 24hr ticker data from Binance spot
+ * Filters out delisted/non-trading symbols using exchangeInfo
  */
 export async function fetchBinance() {
-    const r = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-    const arr = await r.json();
+    // Fetch ticker data and trading status in parallel
+    const [tickerRes, infoRes] = await Promise.all([
+        fetch('https://api.binance.com/api/v3/ticker/24hr'),
+        fetch('https://api.binance.com/api/v3/exchangeInfo')
+    ]);
+
+    const arr = await tickerRes.json();
+    const info = await infoRes.json();
+
+    // Build set of actively trading symbols
+    const tradingSymbols = new Set();
+    (info.symbols || []).forEach(s => {
+        if (s.status === 'TRADING') {
+            tradingSymbols.add(s.symbol);
+        }
+    });
+
     const out = {};
 
     arr.forEach(t => {
+        // Skip delisted / non-trading / zero-volume pairs
+        if (!tradingSymbols.has(t.symbol)) return;
+        const vol = parseFloat(t.quoteVolume);
+        if (vol <= 0) return;
+
         out[t.symbol] = {
             symbol: t.symbol,
             lastPrice: parseFloat(t.lastPrice),
             priceChangePercent: parseFloat(t.priceChangePercent),
-            volume: parseFloat(t.quoteVolume),
+            volume: vol,
             high24h: parseFloat(t.highPrice) || null,
             low24h: parseFloat(t.lowPrice) || null,
             openPrice: parseFloat(t.openPrice) || null,
