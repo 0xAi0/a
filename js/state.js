@@ -11,20 +11,62 @@ class AppState {
         this.globalMarketData = {};
         this.refreshIntervalId = null;
         this.tokenInfoCache = {};
-        this.pinnedSymbol = localStorage.getItem('pinnedSymbol') || null;
+        const pinnedSymbols = JSON.parse(localStorage.getItem('pinnedSymbols') || '{}');
+        const legacyPinned = localStorage.getItem('pinnedSymbol');
+        if (legacyPinned && !pinnedSymbols.binance) {
+            pinnedSymbols.binance = legacyPinned;
+            localStorage.removeItem('pinnedSymbol');
+        }
+        this.pinnedSymbols = pinnedSymbols;
+        this.availablePairs = {};
     }
 
     setPinnedSymbol(symbol) {
-        this.pinnedSymbol = symbol;
         if (symbol) {
-            localStorage.setItem('pinnedSymbol', symbol);
+            this.pinnedSymbols[this.activeExchange] = symbol;
         } else {
-            localStorage.removeItem('pinnedSymbol');
+            delete this.pinnedSymbols[this.activeExchange];
+        }
+        localStorage.setItem('pinnedSymbols', JSON.stringify(this.pinnedSymbols));
+    }
+
+    getPinnedSymbol() {
+        return this.pinnedSymbols[this.activeExchange] || null;
+    }
+
+    setAvailablePairs(exchange, pairs) {
+        this.availablePairs[exchange] = Array.isArray(pairs) ? pairs : [];
+    }
+
+    getAvailablePairs(exchange = this.activeExchange) {
+        return this.availablePairs[exchange] || [];
+    }
+
+    pinSymbolToTop(symbol) {
+        const syms = this.symbolSets[this.activeExchange] || [];
+        const idx = syms.indexOf(symbol);
+        if (idx <= 0) return;
+        syms.splice(idx, 1);
+        syms.unshift(symbol);
+        this.saveSymbols();
+    }
+
+    clearPinnedIfRemoved(symbol) {
+        if (this.getPinnedSymbol() === symbol) {
+            this.setPinnedSymbol(null);
         }
     }
 
     getSymbols() {
-        return this.symbolSets[this.activeExchange] || [];
+        const symbols = [...(this.symbolSets[this.activeExchange] || [])];
+        const pinned = this.getPinnedSymbol();
+        if (!pinned) return symbols;
+        const idx = symbols.indexOf(pinned);
+        if (idx > 0) {
+            symbols.splice(idx, 1);
+            symbols.unshift(pinned);
+        }
+        return symbols;
     }
 
     setExchange(exchange) {
@@ -48,6 +90,7 @@ class AppState {
 
     removeSymbol(symbol) {
         this.symbolSets[this.activeExchange] = this.symbolSets[this.activeExchange].filter(s => s !== symbol);
+        this.clearPinnedIfRemoved(symbol);
         this.saveSymbols();
     }
 

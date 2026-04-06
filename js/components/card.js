@@ -8,7 +8,7 @@ export function createGridCard(data, { onRemove, onClick, onPin }) {
     const meta = EXCHANGE_META[state.activeExchange];
     const pos = data.priceChangePercent >= 0;
     const displaySym = cleanSymbol(data.symbol);
-    const isPinned = state.pinnedSymbol === data.symbol;
+    const isPinned = state.getPinnedSymbol() === data.symbol;
 
     const card = document.createElement('div');
     card.className = `price-card ${pos ? 'positive' : 'negative'}${isPinned ? ' pinned' : ''}`;
@@ -16,7 +16,7 @@ export function createGridCard(data, { onRemove, onClick, onPin }) {
 
     card.innerHTML = `
         <div class="card-actions">
-            <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Unpin from tab' : 'Pin to tab'}">
+            <button class="pin-btn${isPinned ? ' active' : ''}" title="${isPinned ? 'Unpin from top' : 'Pin to top'}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="${isPinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 2L12 22"/><path d="M17 7L7 7"/><path d="M15 2L9 2"/><path d="M8 7L5 20"/><path d="M16 7L19 20"/>
                 </svg>

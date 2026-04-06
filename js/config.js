@@ -2,9 +2,14 @@
 
 export const DEFAULT_SYMBOLS = {
     hyperliquid: ['BTC', 'ETH', 'SOL', 'NEAR', 'AAVE', 'ENA', 'FARTCOIN', 'APT'],
-    lighter: ['BTC', 'ETH', 'SOL', 'ARB', 'OP'],
+    lighter: ['BTC'],
     asterdex: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'NEARUSDT'],
     binance: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'LITUSDT', 'AAVEUSDT', 'ENAUSDT', 'LDOUSDT', 'APTUSDT', 'ZAMAUSDT', 'CAKEUSDT']
+};
+
+// Extend this map as you discover additional market IDs.
+export const LIGHTER_DEFAULT_MARKETS = {
+    BTC: 120
 };
 
 export const EXCHANGE_META = {
@@ -30,10 +35,10 @@ export const EXCHANGE_META = {
         color: '#34d399'
     },
     binance: {
-        label: 'Binance Spot',
+        label: 'Binance Futures',
         badge: 'BN',
         cls: 'bn',
-        type: 'Spot',
+        type: 'Perpetual',
         color: '#fbbf24'
     }
 };

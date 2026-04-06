@@ -4,23 +4,22 @@
 import { state } from '../state.js';
 
 /**
- * Fetch all 24hr ticker data from Binance spot
+ * Fetch all 24hr ticker data from Binance USDT-M futures
  * Filters out delisted/non-trading symbols using exchangeInfo
  */
 export async function fetchBinance() {
-    // Fetch ticker data and trading status in parallel
     const [tickerRes, infoRes] = await Promise.all([
-        fetch('https://api.binance.com/api/v3/ticker/24hr'),
-        fetch('https://api.binance.com/api/v3/exchangeInfo')
+        fetch('https://fapi.binance.com/fapi/v1/ticker/24hr'),
+        fetch('https://fapi.binance.com/fapi/v1/exchangeInfo')
     ]);
 
     const arr = await tickerRes.json();
     const info = await infoRes.json();
 
-    // Build set of actively trading symbols
+    // Build set of active perpetual contracts only.
     const tradingSymbols = new Set();
     (info.symbols || []).forEach(s => {
-        if (s.status === 'TRADING') {
+        if (s.status === 'TRADING' && s.contractType === 'PERPETUAL') {
             tradingSymbols.add(s.symbol);
         }
     });
@@ -28,7 +27,7 @@ export async function fetchBinance() {
     const out = {};
 
     arr.forEach(t => {
-        // Skip delisted / non-trading / zero-volume pairs
+        // Skip delisted / non-trading / zero-volume pairs.
         if (!tradingSymbols.has(t.symbol)) return;
         const vol = parseFloat(t.quoteVolume);
         if (vol <= 0) return;
@@ -47,6 +46,19 @@ export async function fetchBinance() {
     });
 
     return out;
+}
+
+export async function fetchBinanceFuturesPairs() {
+    const infoRes = await fetch('https://fapi.binance.com/fapi/v1/exchangeInfo');
+    const info = await infoRes.json();
+    return (info.symbols || [])
+        .filter(s => (
+            s.status === 'TRADING'
+            && s.contractType === 'PERPETUAL'
+            && s.quoteAsset === 'USDT'
+        ))
+        .map(s => s.symbol)
+        .sort();
 }
 
 /**

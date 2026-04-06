@@ -4,9 +4,9 @@ import { state } from './state.js';
 import { EXCHANGE_META } from './config.js';
 import { cleanSymbol, formatPrice } from './utils/format.js';
 import { fetchHyperliquid } from './exchanges/hyperliquid.js';
-import { fetchLighter } from './exchanges/lighter.js';
+import { fetchLighter, fetchLighterPairs, upsertLighterMarket } from './exchanges/lighter.js';
 import { fetchAsterDex } from './exchanges/asterdex.js';
-import { fetchBinance } from './exchanges/binance.js';
+import { fetchBinance, fetchBinanceFuturesPairs } from './exchanges/binance.js';
 import { createGridCard } from './components/card.js';
 import { createListRow, renderErrorRow } from './components/listRow.js';
 import { showDetailModal, initModals } from './components/modal.js';
@@ -17,6 +17,8 @@ const gridEl = document.getElementById('pricesGrid');
 const listEl = document.getElementById('pricesList');
 const listBody = document.getElementById('pricesListBody');
 const loadingEl = document.getElementById('loadingIndicator');
+const newCoinEl = document.getElementById('newCoin');
+const pairSuggestionsEl = document.getElementById('pairSuggestions');
 
 // ── Exchange Fetcher Dispatch ──
 async function fetchMarketData() {
@@ -70,6 +72,33 @@ function renderLighterError(status) {
     return banner;
 }
 
+function updatePairSuggestions() {
+    const all = state.getAvailablePairs();
+    pairSuggestionsEl.innerHTML = '';
+    all.slice(0, 500).forEach((pair) => {
+        const opt = document.createElement('option');
+        opt.value = pair;
+        pairSuggestionsEl.appendChild(opt);
+    });
+}
+
+async function refreshAvailablePairs(exchange = state.activeExchange) {
+    try {
+        let pairs = [];
+        if (exchange === 'binance') {
+            pairs = await fetchBinanceFuturesPairs();
+        } else if (exchange === 'lighter') {
+            pairs = fetchLighterPairs();
+        }
+        state.setAvailablePairs(exchange, pairs);
+        if (exchange === state.activeExchange) updatePairSuggestions();
+    } catch (e) {
+        console.warn(`Could not load ${exchange} pairs:`, e.message);
+        state.setAvailablePairs(exchange, []);
+        if (exchange === state.activeExchange) updatePairSuggestions();
+    }
+}
+
 // ── Dashboard Update ──
 async function updateDashboard() {
     const data = await fetchMarketData();
@@ -121,18 +150,19 @@ function updateTimestamp() {
 
 // ── Pin to Tab ──
 function pinCoin(symbol) {
-    if (state.pinnedSymbol === symbol) {
+    if (state.getPinnedSymbol() === symbol) {
         state.setPinnedSymbol(null);
         document.title = 'Market Pulse';
     } else {
         state.setPinnedSymbol(symbol);
+        state.pinSymbolToTop(symbol);
     }
     // Re-render to update pin button states
     updateDashboard();
 }
 
 function updateTabTitle(data) {
-    const pinned = state.pinnedSymbol;
+    const pinned = state.getPinnedSymbol();
     if (!pinned) {
         document.title = 'Market Pulse';
         return;
@@ -149,17 +179,40 @@ function updateTabTitle(data) {
 
 // ── Coin Management ──
 function addCoin() {
-    const inp = document.getElementById('newCoin');
-    let val = inp.value.trim().toUpperCase();
+    let val = newCoinEl.value.trim().toUpperCase();
     if (!val) return;
 
-    // AsterDex & Binance use USDT suffix
+    // Lighter supports manual market-id mapping with "SYMBOL:MARKET_ID" format.
+    if (state.activeExchange === 'lighter') {
+        const mapMatch = val.match(/^([A-Z0-9]+)\s*[:#]\s*(\d+)$/);
+        if (mapMatch) {
+            const [, sym, marketId] = mapMatch;
+            if (upsertLighterMarket(sym, Number(marketId))) {
+                val = sym;
+                refreshAvailablePairs('lighter');
+            }
+        }
+    }
+
+    // AsterDex & Binance use USDT suffix.
     if ((state.activeExchange === 'asterdex' || state.activeExchange === 'binance') && !val.endsWith('USDT')) {
         val += 'USDT';
     }
 
+    const available = state.getAvailablePairs();
+    if (available.length && !available.includes(val)) {
+        if (state.activeExchange === 'lighter') {
+            newCoinEl.setCustomValidity('Unknown pair. Use a suggestion or add SYMBOL:MARKET_ID (example BTC:120).');
+        } else {
+            newCoinEl.setCustomValidity('Unknown or delisted pair on this exchange.');
+        }
+        newCoinEl.reportValidity();
+        return;
+    }
+    newCoinEl.setCustomValidity('');
+
     if (state.addSymbol(val)) {
-        inp.value = '';
+        newCoinEl.value = '';
         updateDashboard();
     }
 }
@@ -186,6 +239,7 @@ function initExchangeSwitcher() {
             buttons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById('exchangeLabel').textContent = EXCHANGE_META[state.activeExchange].label;
+            refreshAvailablePairs(state.activeExchange);
             updateDashboard();
         });
     });
@@ -227,9 +281,10 @@ function startRefresh() {
 
 // ── Keyboard shortcuts ──
 function initKeyboard() {
-    document.getElementById('newCoin').addEventListener('keypress', e => {
+    newCoinEl.addEventListener('keypress', e => {
         if (e.key === 'Enter') addCoin();
     });
+    newCoinEl.addEventListener('input', () => newCoinEl.setCustomValidity(''));
 
     // Escape to close modals
     document.addEventListener('keydown', e => {
@@ -246,6 +301,7 @@ function init() {
     initViewToggle();
     initModals();
     initKeyboard();
+    refreshAvailablePairs(state.activeExchange);
 
     // Listen for settings changes
     window.addEventListener('settings-changed', startRefresh);
