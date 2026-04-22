@@ -190,17 +190,61 @@
                     </div>
                 </div>
 
-                <!-- Target Calculator -->
+                <!-- Performance from Low -->
+                <div class="section-card">
+                    <div class="section-title">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                            <polyline points="17 6 23 6 23 12"></polyline>
+                        </svg>
+                        Recovery & Performance
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <div class="field" style="flex: 1;">
+                            <label>Lookback Period</label>
+                            <select id="lowPeriodSelect">
+                                <option value="1">1 Day</option>
+                                <option value="7">7 Days</option>
+                                <option value="30" selected>30 Days</option>
+                                <option value="90">90 Days</option>
+                                <option value="180">180 Days</option>
+                                <option value="365">365 Days</option>
+                            </select>
+                        </div>
+                        <div class="field" style="flex: 1;">
+                            <label>Base Price ($)</label>
+                            <input type="number" id="basePriceInput" placeholder="Loading..." step="any">
+                        </div>
+                    </div>
+                    <div class="calc-result">
+                        <span>Up from Base Price</span>
+                        <span id="upFromBaseValue" style="font-weight:700;">—</span>
+                    </div>
+                </div>
+
+                <!-- Calculators -->
                 <div class="section-card">
                     <div class="section-title">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
                         </svg>
-                        Target Calculator
+                        Calculators
                     </div>
+                    
                     <div class="field">
-                        <label>Percentage Change (%)</label>
-                        <input type="number" id="percentageInput" placeholder="e.g. 10 or -5">
+                        <label>Holdings Value (Number of Coins)</label>
+                        <input type="number" id="coinsInput" placeholder="e.g. 100" step="any">
+                    </div>
+                    <div class="calc-result" style="margin-bottom: 15px;">
+                        <span>Total Value</span>
+                        <span id="holdingsValue">—</span>
+                    </div>
+
+                    <div style="height:1px;background:var(--border);margin:15px 0"></div>
+
+                    <div class="field">
+                        <label>Target by Percentage Change (%)</label>
+                        <input type="number" id="percentageInput" placeholder="e.g. 10 or -5" step="any">
                     </div>
                     <div class="calc-result">
                         <span>Target Price</span>

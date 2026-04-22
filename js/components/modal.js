@@ -4,7 +4,7 @@
 import { state } from '../state.js';
 import { EXCHANGE_META } from '../config.js';
 import { formatPrice, formatVolume, formatLargeNumber, formatSupply, cleanSymbol } from '../utils/format.js';
-import { fetchBinanceTokenInfo } from '../exchanges/binance.js';
+import { fetchBinanceTokenInfo, fetchBinanceHistoricalLow } from '../exchanges/binance.js';
 
 let currentModalData = null;
 
@@ -35,6 +35,9 @@ export function showDetailModal(data) {
 
     // Market data — show loading state
     setMarketDataLoading();
+
+    // Historical Performance
+    setupHistoricalPerformance(data, displaySym);
 
     // Calculator
     setupCalculator(data);
@@ -112,7 +115,60 @@ function setDataValue(id, value) {
     }
 }
 
+function setupHistoricalPerformance(data, displaySym) {
+    const periodSelect = document.getElementById('lowPeriodSelect');
+    const basePriceInput = document.getElementById('basePriceInput');
+    const upValue = document.getElementById('upFromBaseValue');
+    
+    basePriceInput.value = '';
+    upValue.textContent = '—';
+    upValue.style.color = '';
+
+    const calculateUp = () => {
+        const base = parseFloat(basePriceInput.value);
+        if (!base || base <= 0) {
+            upValue.textContent = '—';
+            return;
+        }
+        const current = data.lastPrice;
+        const pct = ((current - base) / base) * 100;
+        upValue.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+        upValue.style.color = pct >= 0 ? 'var(--green)' : 'var(--red)';
+    };
+
+    basePriceInput.oninput = calculateUp;
+
+    const loadLow = async () => {
+        basePriceInput.placeholder = 'Fetching...';
+        basePriceInput.value = '';
+        calculateUp();
+        const days = parseInt(periodSelect.value);
+        
+        // Format symbol for Binance API
+        let fetchSym = displaySym.toUpperCase();
+        if (!fetchSym.endsWith('USDT') && !fetchSym.endsWith('BUSD')) {
+            fetchSym += 'USDT';
+        }
+
+        const low = await fetchBinanceHistoricalLow(fetchSym, days);
+        
+        // Only update if the select hasn't changed while fetching
+        if (parseInt(periodSelect.value) === days) {
+            if (low !== null) {
+                basePriceInput.value = low;
+                calculateUp();
+            } else {
+                basePriceInput.placeholder = 'Data unavailable';
+            }
+        }
+    };
+
+    periodSelect.onchange = loadLow;
+    loadLow();
+}
+
 function setupCalculator(data) {
+    // Target Calculator
     const input = document.getElementById('percentageInput');
     const targetEl = document.getElementById('targetPrice');
     const diffEl = document.getElementById('priceDiff');
@@ -129,6 +185,23 @@ function setupCalculator(data) {
         targetEl.textContent = `$${formatPrice(tgt)}`;
         diffEl.textContent = `${dif >= 0 ? '+' : ''}$${formatPrice(Math.abs(dif))}`;
         diffEl.style.color = dif >= 0 ? 'var(--green)' : 'var(--red)';
+    };
+
+    // Holdings Calculator
+    const coinsInput = document.getElementById('coinsInput');
+    const holdingsValue = document.getElementById('holdingsValue');
+    
+    coinsInput.value = '';
+    holdingsValue.textContent = '—';
+
+    coinsInput.oninput = () => {
+        const coins = parseFloat(coinsInput.value);
+        if (isNaN(coins) || coins < 0) {
+            holdingsValue.textContent = '—';
+            return;
+        }
+        const val = coins * data.lastPrice;
+        holdingsValue.textContent = `$${val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     };
 }
 

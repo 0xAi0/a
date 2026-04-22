@@ -166,3 +166,29 @@ function getCoingeckoId(sym) {
     };
     return map[sym] || sym;
 }
+
+/**
+ * Fetch historical low price over a given number of days from Binance Klines
+ */
+export async function fetchBinanceHistoricalLow(symbol, days) {
+    try {
+        // max limit is 1000 for interval 1d
+        const limit = Math.min(days, 1000);
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=${limit}`);
+        if (!res.ok) return null;
+        
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) return null;
+        
+        let minLow = Infinity;
+        for (const candle of data) {
+            const low = parseFloat(candle[3]); // index 3 is low price
+            if (low < minLow) minLow = low;
+        }
+        
+        return minLow === Infinity ? null : minLow;
+    } catch (e) {
+        console.warn(`Failed to fetch historical low for ${symbol}:`, e.message);
+        return null;
+    }
+}
