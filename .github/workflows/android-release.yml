@@ -26,23 +26,49 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Build release APK
         working-directory: android
         run: gradle :app:assembleRelease --stacktrace
 
-      - name: Show built APK files (for debugging)
-        run: find android/app/build/outputs/apk -type f -name '*.apk' -print
+      - name: Collect APK artifacts
+        id: collect_apks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p android/artifacts
+
+          mapfile -t APK_FILES < <(find android/app/build/outputs/apk -type f -name '*.apk' | sort)
+
+          if [ "${#APK_FILES[@]}" -eq 0 ]; then
+            echo "No APK files found under android/app/build/outputs/apk"
+            exit 1
+          fi
+
+          printf 'Found APKs:\n%s\n' "${APK_FILES[*]}"
+
+          for apk in "${APK_FILES[@]}"; do
+            cp "$apk" android/artifacts/
+          done
+
+          {
+            echo 'apk_files<<EOF'
+            find android/artifacts -type f -name '*.apk' | sort
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: market-pulse-release-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/artifacts/*.apk
           if-no-files-found: error
 
       - name: Publish GitHub release (tags only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: android/app/build/outputs/apk/release/*.apk
+          files: android/artifacts/*.apk
           generate_release_notes: true
