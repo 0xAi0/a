@@ -30,9 +30,9 @@ A CI workflow is included at `.github/workflows/android-release.yml`.
 - Push a tag that starts with `android-v` (example: `android-v1.0.0`).
 
 The workflow will:
-1. build `app-release.apk`,
-2. upload it as a workflow artifact,
-3. attach it to a GitHub Release for tag runs.
+1. build release APK file(s) under `android/app/build/outputs/apk/release/`,
+2. upload all generated release APKs as workflow artifacts,
+3. attach those APK files to a GitHub Release for tag runs.
 
 ## Usage
 - Open app menu in top-right:
