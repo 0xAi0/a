@@ -30,7 +30,7 @@ jobs:
         working-directory: android
         run: gradle :app:assembleRelease --stacktrace
 
-      - name: Show built APK files
+      - name: Show built APK files (for debugging)
         run: find android/app/build/outputs/apk -type f -name '*.apk' -print
 
       - name: Upload APK artifact
