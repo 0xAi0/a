@@ -4,7 +4,7 @@
 import { state } from '../state.js';
 import { EXCHANGE_META } from '../config.js';
 import { formatPrice, formatVolume, formatLargeNumber, formatSupply, cleanSymbol } from '../utils/format.js';
-import { fetchBinanceTokenInfo, fetchBinanceHistoricalLow } from '../exchanges/binance.js';
+import { fetchBinanceCustomHighLow, fetchBinanceHistoricalLow } from '../exchanges/binance.js';
 
 let currentModalData = null;
 
@@ -30,11 +30,7 @@ export function showDetailModal(data) {
     changeEl.textContent = `${pos ? '+' : ''}${data.priceChangePercent.toFixed(2)}%`;
     changeEl.className = `detail-change ${pos ? 'up' : 'down'}`;
 
-    // 24h Range
-    renderRange(data);
 
-    // Market data — show loading state
-    setMarketDataLoading();
 
     // Historical Performance
     setupHistoricalPerformance(data, displaySym);
@@ -45,73 +41,63 @@ export function showDetailModal(data) {
     // Open modal
     modal.classList.add('open');
 
-    // Fetch token info asynchronously
-    loadTokenInfo(displaySym);
+    // Custom Price Range
+    setupCustomRange(data, displaySym);
 }
 
-function renderRange(data) {
-    const high = data.high24h;
-    const low = data.low24h;
-    const current = data.lastPrice;
+function setupCustomRange(data, displaySym) {
+    const rangeSelect = document.getElementById('customRangeSelect');
+    
+    // reset to default
+    rangeSelect.value = '24h';
+    
+    rangeSelect.onchange = () => {
+        loadCustomRange(data, displaySym, rangeSelect.value);
+    };
+    
+    // Load initial
+    loadCustomRange(data, displaySym, '24h');
+}
 
-    const highEl = document.getElementById('rangeHighValue');
-    const lowEl = document.getElementById('rangeLowValue');
-    const barFill = document.getElementById('rangeBarFill');
-    const barMarker = document.getElementById('rangeBarMarker');
-    const rangeSection = document.getElementById('rangeSection');
-
+async function loadCustomRange(data, displaySym, period) {
+    const highEl = document.getElementById('customHighValue');
+    const lowEl = document.getElementById('customLowValue');
+    const marker = document.getElementById('customRangeBarMarker');
+    const rangeSection = document.getElementById('customRangeSection');
+    
+    highEl.textContent = '...';
+    lowEl.textContent = '...';
+    
+    let high = null;
+    let low = null;
+    
+    if (period === '24h') {
+        // Fast path for 24h which is already in data
+        high = data.high24h;
+        low = data.low24h;
+    } else {
+        let fetchSym = displaySym.toUpperCase();
+        if (!fetchSym.endsWith('USDT') && !fetchSym.endsWith('BUSD')) {
+            fetchSym += 'USDT';
+        }
+        const ranges = await fetchBinanceCustomHighLow(fetchSym, period);
+        if (ranges) {
+            high = ranges.high;
+            low = ranges.low;
+        }
+    }
+    
     if (high && low && high !== low) {
         rangeSection.style.display = 'block';
         highEl.textContent = `$${formatPrice(high)}`;
         lowEl.textContent = `$${formatPrice(low)}`;
-
-        // Calculate position (0% = low, 100% = high)
+        const current = data.lastPrice;
         const pct = Math.min(100, Math.max(0, ((current - low) / (high - low)) * 100));
-        barFill.style.width = '100%';
-        barMarker.style.left = `${pct}%`;
+        marker.style.left = `${pct}%`;
     } else {
-        rangeSection.style.display = 'none';
-    }
-}
-
-function setMarketDataLoading() {
-    const fields = ['mcapValue', 'fdvValue', 'circSupplyValue', 'totalSupplyValue', 'volumeValue', 'tradesValue'];
-    fields.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.textContent = '...';
-            el.className = 'data-card-value loading';
-        }
-    });
-}
-
-async function loadTokenInfo(symbol) {
-    try {
-        const info = await fetchBinanceTokenInfo(symbol);
-
-        // Update market data cards
-        setDataValue('mcapValue', info.marketCap ? formatLargeNumber(info.marketCap) : '—');
-        setDataValue('fdvValue', info.fdv ? formatLargeNumber(info.fdv) : '—');
-        setDataValue('circSupplyValue', info.circulatingSupply ? formatSupply(info.circulatingSupply) : '—');
-        setDataValue('totalSupplyValue', info.totalSupply ? formatSupply(info.totalSupply) : '—');
-
-        // Volume from current data
-        if (currentModalData) {
-            setDataValue('volumeValue', formatVolume(currentModalData.volume));
-            setDataValue('tradesValue', currentModalData.trades ? currentModalData.trades.toLocaleString() : '—');
-        }
-    } catch (e) {
-        console.warn('Failed to load token info:', e);
-        const fields = ['mcapValue', 'fdvValue', 'circSupplyValue', 'totalSupplyValue'];
-        fields.forEach(id => setDataValue(id, '—'));
-    }
-}
-
-function setDataValue(id, value) {
-    const el = document.getElementById(id);
-    if (el) {
-        el.textContent = value;
-        el.className = 'data-card-value';
+        highEl.textContent = '—';
+        lowEl.textContent = '—';
+        marker.style.left = '0%';
     }
 }
 

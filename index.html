@@ -144,49 +144,39 @@
                     <span class="detail-change" id="detailChangeValue">—</span>
                 </div>
 
-                <!-- 24h Range -->
-                <div class="range-section" id="rangeSection">
-                    <div class="range-labels">
-                        <div>
-                            <div class="range-label">24h Low</div>
-                            <div class="range-value" id="rangeLowValue">—</div>
+                <!-- Price Ranges -->
+                <div class="section-card">
+                    <div class="section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Price Range
                         </div>
-                        <div style="text-align:right">
-                            <div class="range-label">24h High</div>
-                            <div class="range-value" id="rangeHighValue">—</div>
-                        </div>
+                        <select id="customRangeSelect" style="font-size:0.8rem; padding:4px 8px; background:var(--bg-layer); color:var(--text); border:1px solid var(--border); border-radius:4px; outline:none; cursor:pointer;">
+                            <option value="15m">15 Minutes</option>
+                            <option value="1h">1 Hour</option>
+                            <option value="4h">4 Hours</option>
+                            <option value="12h">12 Hours</option>
+                            <option value="24h" selected>24 Hours</option>
+                        </select>
                     </div>
-                    <div class="range-bar-wrap">
-                        <div class="range-bar-fill" id="rangeBarFill"></div>
-                        <div class="range-bar-marker" id="rangeBarMarker"></div>
-                    </div>
-                </div>
 
-                <!-- Market Data -->
-                <div class="market-data-grid">
-                    <div class="data-card">
-                        <div class="data-card-label">Market Cap</div>
-                        <div class="data-card-value" id="mcapValue">—</div>
-                    </div>
-                    <div class="data-card">
-                        <div class="data-card-label">Fully Diluted</div>
-                        <div class="data-card-value" id="fdvValue">—</div>
-                    </div>
-                    <div class="data-card">
-                        <div class="data-card-label">Circ. Supply</div>
-                        <div class="data-card-value" id="circSupplyValue">—</div>
-                    </div>
-                    <div class="data-card">
-                        <div class="data-card-label">Total Supply</div>
-                        <div class="data-card-value" id="totalSupplyValue">—</div>
-                    </div>
-                    <div class="data-card">
-                        <div class="data-card-label">24h Volume</div>
-                        <div class="data-card-value" id="volumeValue">—</div>
-                    </div>
-                    <div class="data-card">
-                        <div class="data-card-label">24h Trades</div>
-                        <div class="data-card-value" id="tradesValue">—</div>
+                    <div class="range-section" id="customRangeSection" style="margin-top: 15px; display: block;">
+                        <div class="range-labels">
+                            <div>
+                                <div class="range-label">Low</div>
+                                <div class="range-value" id="customLowValue">—</div>
+                            </div>
+                            <div style="text-align:right">
+                                <div class="range-label">High</div>
+                                <div class="range-value" id="customHighValue">—</div>
+                            </div>
+                        </div>
+                        <div class="range-bar-wrap">
+                            <div class="range-bar-fill" id="customRangeBarFill"></div>
+                            <div class="range-bar-marker" id="customRangeBarMarker"></div>
+                        </div>
                     </div>
                 </div>
 
